@@ -1,0 +1,14 @@
+{
+    "idf.adapterTargetName": "esp32",
+    "idf.portWin": "COM12",
+    "idf.flashType": "UART",
+    "files.associations": {
+        "string.h": "c",
+        "mqtt_solo.h": "c",
+        "task.h": "c",
+        "gpio.h": "c",
+        "esp_attr.h": "c",
+        "conn_mgr.h": "c",
+        "infra_compat.h": "c"
+    }
+}
