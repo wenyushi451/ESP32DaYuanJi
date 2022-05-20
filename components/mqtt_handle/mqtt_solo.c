@@ -8,10 +8,58 @@
 
 #include "mqtt_api.h"
 #include "dm_wrapper.h"
+#include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 
 char DEMO_PRODUCT_KEY[IOTX_PRODUCT_KEY_LEN + 1] = {0};
 char DEMO_DEVICE_NAME[IOTX_DEVICE_NAME_LEN + 1] = {0};
 char DEMO_DEVICE_SECRET[IOTX_DEVICE_SECRET_LEN + 1] = {0};
+
+
+/*GPIO初始化函数*/
+void gpio1_init(void)
+{
+    gpio_config_t io_conf;  // 定义一个gpio_config类型的结构体，下面的都算对其进行的配置
+
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;  // 禁止中断  
+    io_conf.mode = GPIO_MODE_INPUT_OUTPUT;            // 选择输出模式
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL; // 配置GPIO_OUT寄存器
+    io_conf.pull_down_en = 0;                   // 禁止下拉
+    io_conf.pull_up_en = 0;                     // 禁止上拉
+    
+    gpio_config(&io_conf);                      // 最后配置使能
+}
+
+uint8_t get_rotation(void)
+{
+    uint8_t cnt=0;
+    gpio_pad_select_gpio(GPIO_NUM_23);
+    gpio_set_direction(GPIO_NUM_23, GPIO_MODE_INPUT);
+
+        if(gpio_get_level(GPIO_NUM_23)==0)
+        {
+            cnt++;
+        }
+         printf("total_rotation is : %d\n",cnt);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        return cnt;
+    
+
+}
+
+// int get_total_rotation()
+// {
+//     int total_ratation;
+//     total_ratation=get_ratation();
+//     printf("total_ratation is : %d\n",total_ratation);
+//     vTaskDelay(1000 / portTICK_PERIOD_MS);
+//     return total_ratation;
+// }
+
+/*GPIO初始化函数*/
 
 #define EXAMPLE_TRACE(fmt, ...)  \
     do { \
@@ -67,10 +115,17 @@ int example_subscribe(void *handle)
 int example_publish(void *handle)
 {
     int             res = 0;
-    const char     *fmt = "/%s/%s/user/get";
+    const char     *fmt = "/sys/%s/%s/thing/event/property/post";
     char           *topic = NULL;
     int             topic_len = 0;
-    char           *payload = "{\"message\":\"hello!\"}";
+    // char           *payload = "{\"message\":\"hello!\"}";
+    char           *payload = NULL;
+
+    payload = HAL_Malloc(200);
+	memset(payload, 0, 200);
+    uint8_t total_rotation;
+    total_rotation = get_rotation();
+    sprintf(payload,"{\"params\":{\"total_rotation\":%d},\"method\":\"thing.event.property.post\"}",total_rotation);//这里的CurrentVoltage就是之前添加标准功能的key
 
     topic_len = strlen(fmt) + strlen(DEMO_PRODUCT_KEY) + strlen(DEMO_DEVICE_NAME) + 1;
     topic = HAL_Malloc(topic_len);

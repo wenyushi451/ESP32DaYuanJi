@@ -86,39 +86,6 @@ static void gpio1_init(void)
     gpio_config(&io_conf);                      // 最后配置使能
 }
 
-// static void gpio_userdefine(void)
-// {
-//     gpio_pad_select_gpio(GPIO_NUM_23);
-//     gpio_set_direction(GPIO_NUM_23, GPIO_MODE_INPUT);
-//     while(1) 
-//     {
-//         gpio_set_level(GPIO_OUTPUT_IO_0, 1);            // 把这个GPIO输出高电平
-//         // print("cnt : %d\n",cnt++);
-//            printf(" Current Gpio23 Level is : %d \r\n\r\n",
-//                    gpio_get_level(GPIO_NUM_23));
-//         vTaskDelay(1000 / portTICK_PERIOD_MS);
-//     }
-// }
-
-static void get_rmp(void)
-{
-    int total_rotation=0;
-    gpio_pad_select_gpio(GPIO_NUM_23);
-    gpio_set_direction(GPIO_NUM_23, GPIO_MODE_INPUT);
-    while(1)
-    {
-        if(gpio_get_level(GPIO_NUM_23)==0)
-        {
-            total_rotation++;
-        }
-        printf("cnt is : %d\n",total_rotation);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
-    return total_rotation;
-}
-
-
-
 void app_main()
 {
     gpio1_init();
@@ -129,8 +96,6 @@ void app_main()
     IOT_SetLogLevel(IOT_LOG_INFO);
 
     conn_mgr_start();
-    // gpio_userdefine();
-    get_rmp();
-    // getcount();
+
 }
 
