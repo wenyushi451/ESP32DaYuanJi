@@ -181,11 +181,12 @@ void timer_main(void)
     while (1) {
         example_timer_event_t evt;
         xQueueReceive(s_timer_queue, &evt, portMAX_DELAY);
-        printf("totoration is %d \n",debounceCounter);
-        // printf("rotationTime is %ld \n",rotationTime);
-        //  printf("debouncetime is %d \n",debouncetime);
-        printf("MACHINESTATE is %d \n",MACHINESTATE);
-        printf("rpm is %d \n",rpm);
+        // printf("totoration is %d \n",debounceCounter);
+        // // // printf("rotationTime is %ld \n",rotationTime);
+
+        // // //  printf("debouncetime is %d \n",debouncetime);
+        // printf("MACHINESTATE is %d \n",MACHINESTATE);
+        // printf("rpm is %d \n",rpm);
 
     }
 }

@@ -13,7 +13,9 @@
 #include "freertos/task.h"
 #include "gpioconfig.h"
 
-extern volatile int debounceCounter; //总转速
+extern volatile int debounceCounter; //总转数
+extern volatile int rpm; //转速
+extern volatile bool MACHINESTATE; // 1启动 0停止
 #define GPIO_OUTPUT_IO_0    22
 #define GPIO_OUTPUT_PIN_SEL  (1ULL<<GPIO_OUTPUT_IO_0)  // 配置GPIO_OUT位寄存器
 #define GPIO_INPUT_IO_1    23
@@ -130,7 +132,7 @@ int example_publish(void *handle)
 
     payload = HAL_Malloc(200);
 	memset(payload, 0, 200);
-    sprintf(payload,"{\"params\":{\"total_rotation\":%d},\"method\":\"thing.event.property.post\"}",debounceCounter);//这里的CurrentVoltage就是之前添加标准功能的key
+    sprintf(payload,"{\"params\":{\"total_rotation\":%d,\"RotateSpeed\":%d,\"RunningState\":%d},\"method\":\"thing.event.property.post\"}",debounceCounter,rpm,MACHINESTATE);//
 
     topic_len = strlen(fmt) + strlen(DEMO_PRODUCT_KEY) + strlen(DEMO_DEVICE_NAME) + 1;
     topic = HAL_Malloc(topic_len);
