@@ -9,6 +9,11 @@
         "gpio.h": "c",
         "esp_attr.h": "c",
         "conn_mgr.h": "c",
-        "infra_compat.h": "c"
+        "infra_compat.h": "c",
+        "timer_group.h": "c",
+        "dm_wrapper.h": "c",
+        "freertos.h": "c",
+        "stdlib.h": "c",
+        "mqtt_api.h": "c"
     }
 }

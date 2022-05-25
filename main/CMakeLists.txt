@@ -1,9 +1,3 @@
-set(COMPONENT_ADD_INCLUDEDIRS ".")
 
-# Edit following two lines to set component requirements (see docs)
-set(COMPONENT_REQUIRES )
-set(COMPONENT_PRIV_REQUIRES )
-
-set(COMPONENT_SRCS ./app_main.c)
-
-register_component()
+idf_component_register(SRCS "./app_main.c" "./src/timer_group.c"  "./src/gpioconfig.c" "./mqtt_handle/mqtt_solo.c"
+                    INCLUDE_DIRS "." "./src" "./mqtt_handle")  

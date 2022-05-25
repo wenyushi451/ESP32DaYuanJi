@@ -1,4 +1,4 @@
-# Install script for directory: D:/esp32/esp-aliyun/examples/mqtt/mqtt_example/components/mqtt_handle
+# Install script for directory: D:/esp32/esp-aliyun/examples/mqtt/ESP32DaYuanJi/components/mqtt_handle
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

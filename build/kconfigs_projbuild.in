@@ -3,4 +3,4 @@ source "D:/esp32/Espressif/frameworks/esp-idf-v4.4/components/bootloader/Kconfig
 source "D:/esp32/Espressif/frameworks/esp-idf-v4.4/components/esp_rom/Kconfig.projbuild"
 source "D:/esp32/Espressif/frameworks/esp-idf-v4.4/components/esptool_py/Kconfig.projbuild"
 source "D:/esp32/Espressif/frameworks/esp-idf-v4.4/components/partition_table/Kconfig.projbuild"
-source "D:/esp32/esp-aliyun/examples/mqtt/mqtt_example/main/Kconfig.projbuild"
+source "D:/esp32/esp-aliyun/examples/mqtt/ESP32DaYuanJi/main/Kconfig.projbuild"

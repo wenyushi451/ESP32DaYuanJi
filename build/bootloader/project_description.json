@@ -1,8 +1,8 @@
 {
     "project_name":       "bootloader",
     "project_path":       "D:/esp32/Espressif/frameworks/esp-idf-v4.4/components/bootloader/subproject",
-    "build_dir":          "D:/esp32/esp-aliyun/examples/mqtt/mqtt_example/build/bootloader",
-    "config_file":        "D:/esp32/esp-aliyun/examples/mqtt/mqtt_example/sdkconfig",
+    "build_dir":          "D:/esp32/esp-aliyun/examples/mqtt/ESP32DaYuanJi/build/bootloader",
+    "config_file":        "D:/esp32/esp-aliyun/examples/mqtt/ESP32DaYuanJi/sdkconfig",
     "config_defaults":    "",
     "app_elf":            "bootloader.elf",
     "app_bin":            "bootloader.bin",

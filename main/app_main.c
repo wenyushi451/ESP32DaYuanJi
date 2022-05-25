@@ -33,9 +33,11 @@
 #include "infra_compat.h"
 
 #include "mqtt_solo.h"
+#include "gpioconfig.h"
 
 #include "conn_mgr.h"
 #include "driver/gpio.h"
+#include "timer_group.h"
 
 /* The examples use simple WiFi configuration that you can set via
    'make menuconfig'.
@@ -73,18 +75,18 @@ static esp_err_t wifi_event_handle(void *ctx, system_event_t *event)
     return ESP_OK;
 }
 
-static void gpio1_init(void)
-{
-    gpio_config_t io_conf;  // 定义一个gpio_config类型的结构体，下面的都算对其进行的配置
+// static void gpio1_init(void)
+// {
+//     gpio_config_t io_conf;  // 定义一个gpio_config类型的结构体，下面的都算对其进行的配置
 
-    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;  // 禁止中断  
-    io_conf.mode = GPIO_MODE_INPUT_OUTPUT;            // 选择输出模式
-    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL; // 配置GPIO_OUT寄存器
-    io_conf.pull_down_en = 0;                   // 禁止下拉
-    io_conf.pull_up_en = 0;                     // 禁止上拉
+//     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;  // 禁止中断  
+//     io_conf.mode = GPIO_MODE_INPUT_OUTPUT;            // 选择输出模式
+//     io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL; // 配置GPIO_OUT寄存器
+//     io_conf.pull_down_en = 0;                   // 禁止下拉
+//     io_conf.pull_up_en = 0;                     // 禁止上拉
     
-    gpio_config(&io_conf);                      // 最后配置使能
-}
+//     gpio_config(&io_conf);                      // 最后配置使能
+// }
 
 void app_main()
 {
@@ -96,6 +98,7 @@ void app_main()
     IOT_SetLogLevel(IOT_LOG_INFO);
 
     conn_mgr_start();
-
+    timer_main();
+    
 }
 
