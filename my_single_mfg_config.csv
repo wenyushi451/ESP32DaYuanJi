@@ -1,6 +1,6 @@
 key,type,encoding,value
 aliyun-key,namespace,,
-DeviceName,data,string,DaYuanJiEsp32
-DeviceSecret,data,string,bc06c0f8986e093cf9112b7827104869
+DeviceName,data,string,DaYuanJi002
+DeviceSecret,data,string,47e1a243b793e0cf53f3ea442d843c7f
 ProductKey,data,string,a1QxiJtSoHS
 ProductSecret,data,string,dMzVtOxjtYd31PPs

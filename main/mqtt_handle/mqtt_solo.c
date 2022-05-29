@@ -13,62 +13,13 @@
 #include "freertos/task.h"
 #include "gpioconfig.h"
 
-extern volatile int debounceCounter; //总转数
-extern volatile int rpm; //转速
+extern volatile int ToTalRotation; //总转数
+extern volatile int RPM; //转速
 extern volatile bool MACHINESTATE; // 1启动 0停止
-#define GPIO_OUTPUT_IO_0    22
-#define GPIO_OUTPUT_PIN_SEL  (1ULL<<GPIO_OUTPUT_IO_0)  // 配置GPIO_OUT位寄存器
-#define GPIO_INPUT_IO_1    23
-#define GPIO_INPUT_PIN_SEL  (1ULL<<GPIO_INPUT_IO_1)  // 配置GPIO_IN位寄存器
-
 
 char DEMO_PRODUCT_KEY[IOTX_PRODUCT_KEY_LEN + 1] = {0};
 char DEMO_DEVICE_NAME[IOTX_DEVICE_NAME_LEN + 1] = {0};
 char DEMO_DEVICE_SECRET[IOTX_DEVICE_SECRET_LEN + 1] = {0};
-
-
-// /*GPIO初始化函数*/
-// void gpio1_init(void)
-// {
-//     gpio_config_t io_conf;  // 定义一个gpio_config类型的结构体，下面的都算对其进行的配置
-
-//     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;  // 禁止中断  
-//     io_conf.mode = GPIO_MODE_INPUT_OUTPUT;            // 选择输出模式
-//     io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL; // 配置GPIO_OUT寄存器
-//     io_conf.pull_down_en = 0;                   // 禁止下拉
-//     io_conf.pull_up_en = 0;                     // 禁止上拉
-    
-//     gpio_config(&io_conf);                      // 最后配置使能
-// }
-
-// uint8_t get_rotation(void)
-// {
-//     uint8_t cnt=0;
-//     gpio_pad_select_gpio(GPIO_NUM_23);
-//     gpio_set_direction(GPIO_NUM_23, GPIO_MODE_INPUT);
-
-//         if(gpio_get_level(GPIO_NUM_23)==0)
-//         {
-//             cnt++;
-//         }
-//          printf("total_rotation is : %d\n",cnt);
-
-//         vTaskDelay(1000 / portTICK_PERIOD_MS);
-//         return cnt;
-    
-
-// }
-
-// int get_total_rotation()
-// {
-//     int total_ratation;
-//     total_ratation=get_ratation();
-//     printf("total_ratation is : %d\n",total_ratation);
-//     vTaskDelay(1000 / portTICK_PERIOD_MS);
-//     return total_ratation;
-// }
-
-/*GPIO初始化函数*/
 
 #define EXAMPLE_TRACE(fmt, ...)  \
     do { \
@@ -127,12 +78,11 @@ int example_publish(void *handle)
     const char     *fmt = "/sys/%s/%s/thing/event/property/post";
     char           *topic = NULL;
     int             topic_len = 0;
-    // char           *payload = "{\"message\":\"hello!\"}";
     char           *payload = NULL;
 
     payload = HAL_Malloc(200);
 	memset(payload, 0, 200);
-    sprintf(payload,"{\"params\":{\"total_rotation\":%d,\"RotateSpeed\":%d,\"RunningState\":%d},\"method\":\"thing.event.property.post\"}",debounceCounter,rpm,MACHINESTATE);//
+    sprintf(payload,"{\"params\":{\"total_rotation\":%d,\"RotateSpeed\":%d,\"RunningState\":%d},\"method\":\"thing.event.property.post\"}",ToTalRotation,RPM,MACHINESTATE);//
 
     topic_len = strlen(fmt) + strlen(DEMO_PRODUCT_KEY) + strlen(DEMO_DEVICE_NAME) + 1;
     topic = HAL_Malloc(topic_len);
@@ -153,36 +103,6 @@ int example_publish(void *handle)
     HAL_Free(topic);
     return 0;
 }
-
-// int total_ratation_publish(void *handle)
-// {
-//     int             res = 0;
-//     const char     *fmt = "/%s/%s/thing/event/property/post";
-//     char           *topic = NULL;
-//     int             topic_len = 0;
-//     char           *payload = "{ "properties": [
-//                             "identifier":    total_rotation 
-//                                 ]
-//                                 }";
-//     topic_len = strlen(fmt) + strlen(DEMO_PRODUCT_KEY) + strlen(DEMO_DEVICE_NAME) + 1;
-//     topic = HAL_Malloc(topic_len);
-//     if (topic == NULL) {
-//         EXAMPLE_TRACE("memory not enough");
-//         return -1;
-//     }
-//     memset(topic, 0, topic_len);
-//     HAL_Snprintf(topic, topic_len, fmt, DEMO_PRODUCT_KEY, DEMO_DEVICE_NAME);
-
-//     res = IOT_MQTT_Publish_Simple(0, topic, IOTX_MQTT_QOS0, payload, strlen(payload));
-//     if (res < 0) {
-//         EXAMPLE_TRACE("publish failed, res = %d", res);
-//         HAL_Free(topic);
-//         return -1;
-//     }
-
-//     HAL_Free(topic);
-//     return 0;
-// }
 
 void example_event_handle(void *pcontext, void *pclient, iotx_mqtt_event_msg_pt msg)
 {
@@ -329,7 +249,6 @@ int mqtt_main(void *paras)
     while (1) {
         if (0 == loop_cnt % 20) {
             example_publish(pclient);
-            // total_ratation_publish(pclient);
         }
 
         IOT_MQTT_Yield(pclient, 200);
