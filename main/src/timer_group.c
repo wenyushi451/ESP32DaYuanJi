@@ -18,30 +18,29 @@
 #include "driver/pcnt.h"
 #include "esp_attr.h"
 #include "esp_log.h"
-// #include "pcnt_event_example.h"
 
 static const char *TAG = "pcnt";
 
 #define TIMER_DIVIDER         (16)  //  Hardware timer clock divider
 #define TIMER_SCALE           (TIMER_BASE_CLK / TIMER_DIVIDER)  // convert counter value to seconds
-// #define GPIO_INPUT_IO_0    22
-// #define GPIO_INPUT_PIN_SEL  (1ULL<<GPIO_INPUT_IO_0)  // 配置GPIO_IN位寄存器
-// #define ESP_INTR_FLAG_DEFAULT 0 //中断标志位
 
 volatile int32_t ToTalRotation;//总转速
-volatile bool MACHINESTATE; // 1启动 0停止
-volatile int RPM,runtime,fist_runtime,last_runtime;; //RPM每分钟转速,runtime：参考时间 
+volatile int MACHINESTATE; // 1启动 0停止
+volatile int runtime,fist_runtime,last_runtime;; //RPM每分钟转速,runtime：参考时间 
+volatile unsigned long rotationTime = 0;
+volatile unsigned long  RPM = 0;
+volatile unsigned long firstTime,lastTime;
+volatile int StateFlag=0;
 
+/*定时器配置*/
 #define TIMER0_INTERVAL_MS        1
 #define DEBOUNCING_INTERVAL_MS    2000
 #define LOCAL_DEBUG               1
 
-volatile unsigned long rotationTime = 0;
-
 /*移植pcnt*/
-#define PCNT_H_LIM_VAL      200000
+#define PCNT_H_LIM_VAL      5
 #define PCNT_L_LIM_VAL     -10
-#define PCNT_THRESH1_VAL    5
+#define PCNT_THRESH1_VAL    10
 #define PCNT_THRESH0_VAL   -5
 #define PCNT_INPUT_SIG_IO   22  // Pulse Input GPIO
 
@@ -60,9 +59,17 @@ typedef struct {
     example_timer_info_t info;
     uint64_t timer_counter_value;
 } example_timer_event_t;
-
 static xQueueHandle s_timer_queue;
 
+/* A sample structure to pass events from the PCNT
+ * interrupt handler to the main program.
+ */
+typedef struct {
+    int unit;  // the PCNT unit that originated an interrupt
+    uint32_t status; // information on the event type that caused the interrupt
+    unsigned long timeStamp; // The time the event occured
+} pcnt_evt_t;
+static xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
 /**
  * @brief 定时器中断回调函数
@@ -84,36 +91,36 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args)
     };
     /*每分钟转速待优化*/
     runtime++;
-    if(runtime==1)
+    if(MACHINESTATE==1&&StateFlag>=10&&runtime>=5)
     {
-        fist_runtime=0;
-        fist_runtime= ToTalRotation;  
-    }
-    if(runtime==61)
-    {
-        last_runtime = ToTalRotation;
+        MACHINESTATE=0;
+        StateFlag=0;
         runtime=0;
-        RPM = last_runtime - fist_runtime;
-        last_runtime = 0;
-    }
-   
-    if(RPM<=5)
-    {
-            MACHINESTATE=0; //机器状态为0，即机器停转
-    }
-    else
-    {
-        MACHINESTATE=1;
     }
     xQueueSendFromISR(s_timer_queue, &evt, &high_task_awoken);
     return high_task_awoken == pdTRUE; // return whether we need to yield at the end of ISR
 }
+
+
 
 /* Initialize PCNT functions:
  *  - configure and initialize PCNT
  *  - set up the input filter
  *  - set up the counter events to watch
  */
+static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
+{
+    int pcnt_unit = (int)arg;
+    pcnt_evt_t pcntevt;
+    pcntevt.unit = pcnt_unit;
+    unsigned long currentMillis = xTaskGetTickCountFromISR();
+    portBASE_TYPE HPTaskAwoken = pdFALSE;
+    pcntevt.timeStamp = currentMillis; 
+    xQueueSendFromISR(pcnt_evt_queue, &pcntevt, &HPTaskAwoken);     // 队列发送
+}
+
+
+
 static void pcnt_init(int unit)
 {
     /* Prepare configuration for the PCNT unit */
@@ -127,7 +134,7 @@ static void pcnt_init(int unit)
         .neg_mode = PCNT_COUNT_DIS,   // Keep the counter value on the negative edge
         // What to do when control input is low or high?
         .lctrl_mode = PCNT_MODE_REVERSE, // Reverse counting direction if low
-            .hctrl_mode = PCNT_MODE_KEEP,    // Keep the primary counter mode if high
+        .hctrl_mode = PCNT_MODE_KEEP,    // Keep the primary counter mode if high
     };
     /* Initialize PCNT unit */
     pcnt_unit_config(&pcnt_config);
@@ -140,7 +147,8 @@ static void pcnt_init(int unit)
     pcnt_set_event_value(unit, PCNT_EVT_THRES_1, PCNT_THRESH1_VAL);
     pcnt_event_enable(unit, PCNT_EVT_THRES_1);
     pcnt_set_event_value(unit, PCNT_EVT_THRES_0, PCNT_THRESH0_VAL);
-    pcnt_event_enable(unit, PCNT_EVT_THRES_0);
+    pcnt_event_enable(unit, PCNT_EVT_ZERO);
+    pcnt_event_enable(unit, PCNT_EVT_H_LIM);
 
     /* Initialize PCNT's counter */
     pcnt_counter_pause(unit);
@@ -148,7 +156,7 @@ static void pcnt_init(int unit)
 
     /* Install interrupt service and add isr callback handler */
     pcnt_isr_service_install(0);
-    // pcnt_isr_handler_add(unit, pcnt_example_intr_handler, (void *)unit);
+    pcnt_isr_handler_add(unit, pcnt_example_intr_handler, (void *)unit);
 
     /* Everything is set up, now go to counting */
     pcnt_counter_resume(unit);
@@ -191,22 +199,64 @@ static void tg_timer_init(int group, int timer, bool auto_reload, int timer_inte
     timer_start(group, timer);
 }
 
+
+int getRPm(unsigned long firstTime,unsigned long lastTime)
+{
+    if(firstTime!=lastTime)
+    {
+        RPM=lastTime-firstTime;
+    }
+    else
+    {
+        StateFlag++;
+    }
+    return RPM;
+}
+
+int getMachineState()
+{
+    if(0<RPM&&RPM<600) //600为6秒
+    {
+        MACHINESTATE=1;
+    }
+    else
+    {
+        MACHINESTATE=0;
+    }
+    return MACHINESTATE;
+}
+
 void timer_main(void)
 {
     s_timer_queue = xQueueCreate(10, sizeof(example_timer_event_t));
+    pcnt_evt_queue = xQueueCreate(10, sizeof(pcnt_evt_t));
     int pcnt_unit = PCNT_UNIT_0;
     tg_timer_init(TIMER_GROUP_0, TIMER_0, true, 1);
     pcnt_init(pcnt_unit);
+    int rpm;
+
+    pcnt_evt_t pcntevt;
+    portBASE_TYPE res;
     while (1) {
         example_timer_event_t evt;
         xQueueReceive(s_timer_queue, &evt, portMAX_DELAY);
-        pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
-        // printf("totoration is %d \n",debounceCounter);
-        // // // printf("rotationTime is %ld \n",rotationTime);
-        // // //  printf("debouncetime is %d \n",debouncetime);
-        //  printf("MACHINESTATE is %d \n",MACHINESTATE);
-        //  printf("RPM is %d \n",RPM);
-        // xQueueReceive(pcnt_evt_queue, &evt1, 1000 / portTICK_PERIOD_MS);
-        // ESP_LOGI(TAG, "Current counter value :%d", ToTalRotation);
+        res = xQueueReceive(pcnt_evt_queue, &pcntevt, 1000 / portTICK_PERIOD_MS);
+        if(res == pdTRUE)
+        {
+            pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
+            ESP_LOGI(TAG, "Event PCNT plusetime is :%ld; uint is %d; cnt: %d", pcntevt.timeStamp,pcntevt.unit, ToTalRotation);
+            // firstTime=pcntevt.unit
+            lastTime=pcntevt.timeStamp;
+        }
+         else {
+            pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
+            ESP_LOGI(TAG, "Current counter value :%d", ToTalRotation);
+            firstTime=pcntevt.timeStamp;
+         }
+        rpm=getRPm(firstTime,lastTime);
+        getMachineState();
+        printf("rpm is %d ;stateflag is %d;runtime is %d;\n",rpm,StateFlag,runtime);
+        printf("MACHINESTATE is %d \n",MACHINESTATE);
+
     }
 }

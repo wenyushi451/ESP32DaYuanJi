@@ -16,6 +16,8 @@
         "stdlib.h": "c",
         "mqtt_api.h": "c",
         "pcnt_event_example.h": "c",
-        "gpioconfig.h": "c"
+        "gpioconfig.h": "c",
+        "pcnt.h": "c",
+        "queue.h": "c"
     }
 }
