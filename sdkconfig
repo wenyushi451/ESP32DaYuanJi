@@ -131,8 +131,8 @@ CONFIG_PARTITION_TABLE_MD5=y
 #
 # Example Configuration
 #
-CONFIG_WIFI_SSID="CMCC-AD78"
-CONFIG_WIFI_PASSWORD="high2017"
+CONFIG_WIFI_SSID="hydiphone"
+CONFIG_WIFI_PASSWORD="eigen2020"
 # end of Example Configuration
 
 #

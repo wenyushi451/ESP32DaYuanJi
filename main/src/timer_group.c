@@ -14,6 +14,8 @@
 #include "driver/gpio.h"
 #include "timer_group.h"
 #include "gpioconfig.h"
+#include "stdio.h"
+#include "math.h"
 
 #include "driver/pcnt.h"
 #include "esp_attr.h"
@@ -26,11 +28,12 @@ static const char *TAG = "pcnt";
 
 volatile int32_t ToTalRotation;//总转速
 volatile int MACHINESTATE; // 1启动 0停止
-volatile int runtime,fist_runtime,last_runtime;; //RPM每分钟转速,runtime：参考时间 
-volatile unsigned long rotationTime = 0;
-volatile unsigned long  RPM = 0;
+volatile int runtime,fist_runtime,last_runtime; //RPM每分钟转速,runtime：参考时间 
+volatile unsigned long rotationTime;
+volatile int RPM;
+volatile unsigned long Pulseinterval; //两次脉冲直接的间隔时间
 volatile unsigned long firstTime,lastTime;
-volatile int StateFlag=0;
+volatile int PulseWT=0; //脉冲等待次数，主循环循环一次加1，
 
 /*定时器配置*/
 #define TIMER0_INTERVAL_MS        1
@@ -90,18 +93,23 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args)
         .timer_counter_value = timer_counter_value
     };
     /*每分钟转速待优化*/
-    runtime++;
-    if(MACHINESTATE==1&&StateFlag>=10&&runtime>=5)
+        runtime++;
+    if(MACHINESTATE==1&&PulseWT>=10&&runtime>=10)
     {
-        MACHINESTATE=0;
-        StateFlag=0;
+        PulseWT=0;
+        Pulseinterval=0;
         runtime=0;
+        RPM=0;
+    }
+    if(MACHINESTATE==0)
+    {
+        PulseWT=0;
+        runtime=0;
+        RPM=0;
     }
     xQueueSendFromISR(s_timer_queue, &evt, &high_task_awoken);
     return high_task_awoken == pdTRUE; // return whether we need to yield at the end of ISR
 }
-
-
 
 /* Initialize PCNT functions:
  *  - configure and initialize PCNT
@@ -116,6 +124,7 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
     unsigned long currentMillis = xTaskGetTickCountFromISR();
     portBASE_TYPE HPTaskAwoken = pdFALSE;
     pcntevt.timeStamp = currentMillis; 
+    PulseWT=0;
     xQueueSendFromISR(pcnt_evt_queue, &pcntevt, &HPTaskAwoken);     // 队列发送
 }
 
@@ -199,23 +208,32 @@ static void tg_timer_init(int group, int timer, bool auto_reload, int timer_inte
     timer_start(group, timer);
 }
 
-
-int getRPm(unsigned long firstTime,unsigned long lastTime)
+int getRPM()
 {
-    if(firstTime!=lastTime)
+    if(Pulseinterval>100)//去除低于1秒的脉冲间隔
     {
-        RPM=lastTime-firstTime;
-    }
-    else
-    {
-        StateFlag++;
+    RPM=round(60/(Pulseinterval/100));//转速取整
     }
     return RPM;
 }
 
+
+int getPulseinterval(unsigned long firstTime,unsigned long lastTime)
+{
+    if(firstTime!=lastTime)
+    {
+        Pulseinterval=lastTime-firstTime;
+    }
+    else
+    {
+        PulseWT++;
+    }
+    return Pulseinterval;
+}
+
 int getMachineState()
 {
-    if(0<RPM&&RPM<600) //600为6秒
+    if(0<Pulseinterval&&Pulseinterval<900) //600为6秒
     {
         MACHINESTATE=1;
     }
@@ -233,8 +251,6 @@ void timer_main(void)
     int pcnt_unit = PCNT_UNIT_0;
     tg_timer_init(TIMER_GROUP_0, TIMER_0, true, 1);
     pcnt_init(pcnt_unit);
-    int rpm;
-
     pcnt_evt_t pcntevt;
     portBASE_TYPE res;
     while (1) {
@@ -253,10 +269,11 @@ void timer_main(void)
             ESP_LOGI(TAG, "Current counter value :%d", ToTalRotation);
             firstTime=pcntevt.timeStamp;
          }
-        rpm=getRPm(firstTime,lastTime);
+        getPulseinterval(firstTime,lastTime);
         getMachineState();
-        printf("rpm is %d ;stateflag is %d;runtime is %d;\n",rpm,StateFlag,runtime);
-        printf("MACHINESTATE is %d \n",MACHINESTATE);
-
+        getRPM();
+        // printf("getPulseinterval is %ld;stateflag is %d;runtime is %d;\n",Pulseinterval,PulseWT,runtime);
+        // printf("MACHINESTATE is %d \n",MACHINESTATE);
+        // printf("RPM is %d \n",RPM);
     }
 }

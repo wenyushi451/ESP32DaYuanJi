@@ -68,12 +68,12 @@ static esp_err_t wifi_event_handle(void *ctx, system_event_t *event)
 
 void app_main()
 {
-    conn_mgr_init();
-    conn_mgr_register_wifi_event(wifi_event_handle);
-    conn_mgr_set_wifi_config_ext((const uint8_t *)EXAMPLE_WIFI_SSID, strlen(EXAMPLE_WIFI_SSID), (const uint8_t *)EXAMPLE_WIFI_PASS, strlen(EXAMPLE_WIFI_PASS));
-    IOT_SetLogLevel(IOT_LOG_INFO);
+    // conn_mgr_init();
+    // conn_mgr_register_wifi_event(wifi_event_handle);
+    // conn_mgr_set_wifi_config_ext((const uint8_t *)EXAMPLE_WIFI_SSID, strlen(EXAMPLE_WIFI_SSID), (const uint8_t *)EXAMPLE_WIFI_PASS, strlen(EXAMPLE_WIFI_PASS));
+    // IOT_SetLogLevel(IOT_LOG_INFO);
 
-    conn_mgr_start();
+    // conn_mgr_start();
     timer_main();
 }
 
