@@ -94,6 +94,7 @@ static bool IRAM_ATTR timer_group_isr_callback(void *args)
     };
     /*每分钟转速待优化*/
         runtime++;
+    // if(MACHINESTATE==1&&PulseWT>=10&&runtime>=10)
     if(MACHINESTATE==1&&PulseWT>=10&&runtime>=10)
     {
         PulseWT=0;
@@ -208,41 +209,41 @@ static void tg_timer_init(int group, int timer, bool auto_reload, int timer_inte
     timer_start(group, timer);
 }
 
-int getRPM()
-{
-    if(Pulseinterval>100)//去除低于1秒的脉冲间隔
-    {
-    RPM=round(60/(Pulseinterval/100));//转速取整
-    }
-    return RPM;
-}
+// int getRPM()
+// {
+//     if(Pulseinterval>100)//去除低于1秒的脉冲间隔
+//     {
+//     RPM=round(60/(Pulseinterval/100));//转速取整
+//     }
+//     return RPM;
+// }
 
 
-int getPulseinterval(unsigned long firstTime,unsigned long lastTime)
-{
-    if(firstTime!=lastTime)
-    {
-        Pulseinterval=lastTime-firstTime;
-    }
-    else
-    {
-        PulseWT++;
-    }
-    return Pulseinterval;
-}
+// int getPulseinterval(unsigned long firstTime,unsigned long lastTime)
+// {
+//     if(firstTime!=lastTime)
+//     {
+//         Pulseinterval=lastTime-firstTime;
+//     }
+//     else
+//     {
+//         PulseWT++;
+//     }
+//     return Pulseinterval;
+// }
 
-int getMachineState()
-{
-    if(0<Pulseinterval&&Pulseinterval<900) //600为6秒
-    {
-        MACHINESTATE=1;
-    }
-    else
-    {
-        MACHINESTATE=0;
-    }
-    return MACHINESTATE;
-}
+// int getMachineState()
+// {
+//     if(0<Pulseinterval&&Pulseinterval<900) //600为6秒
+//     {
+//         MACHINESTATE=1;
+//     }
+//     else
+//     {
+//         MACHINESTATE=0;
+//     }
+//     return MACHINESTATE;
+// }
 
 void timer_main(void)
 {
@@ -267,11 +268,34 @@ void timer_main(void)
          else {
             pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
             ESP_LOGI(TAG, "Current counter value :%d", ToTalRotation);
-            firstTime=pcntevt.timeStamp;
+            // firstTime=pcntevt.timeStamp;
+            firstTime=lastTime; // 上一次上升沿的时间保存到第一次
+            lastTime=pcntevt.timeStamp; // 当前的保存到这一次，两个差值就是中间的时间
          }
-        getPulseinterval(firstTime,lastTime);
-        getMachineState();
-        getRPM();
+        if (lastTime != firstTime)
+            {
+                Pulseinterval = lastTime - firstTime;
+            }
+        else
+            {
+                PulseWT++;
+            }
+            
+        RPM=round(60/(Pulseinterval/100));//转速取整
+        // 旋转时刻 MACHINESTATE==0  RPM > 5
+        // 停转时刻 MACHINESTATE==1  RPM < 5
+        
+        if (Pulseinterval < 900) //600为6秒
+            {
+                MACHINESTATE=1; // 开启
+            }
+        else
+            {
+            MACHINESTATE=0; // 停机 
+            }
+        // getPulseinterval(firstTime,lastTime);
+        // getMachineState();
+        // getRPM();
         // printf("getPulseinterval is %ld;stateflag is %d;runtime is %d;\n",Pulseinterval,PulseWT,runtime);
         // printf("MACHINESTATE is %d \n",MACHINESTATE);
         // printf("RPM is %d \n",RPM);
