@@ -208,41 +208,6 @@ static void tg_timer_init(int group, int timer, bool auto_reload, int timer_inte
     timer_start(group, timer);
 }
 
-int getRPM()
-{
-    if(Pulseinterval>100)//去除低于1秒的脉冲间隔
-    {
-    RPM=round(60/(Pulseinterval/100));//转速取整
-    }
-    return RPM;
-}
-
-
-int getPulseinterval(unsigned long firstTime,unsigned long lastTime)
-{
-    if(firstTime!=lastTime)
-    {
-        Pulseinterval=lastTime-firstTime;
-    }
-    else
-    {
-        PulseWT++;
-    }
-    return Pulseinterval;
-}
-
-int getMachineState()
-{
-    if(0<Pulseinterval&&Pulseinterval<900) //600为6秒
-    {
-        MACHINESTATE=1;
-    }
-    else
-    {
-        MACHINESTATE=0;
-    }
-    return MACHINESTATE;
-}
 
 void timer_main(void)
 {
@@ -261,17 +226,24 @@ void timer_main(void)
         {
             pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
             ESP_LOGI(TAG, "Event PCNT plusetime is :%ld; uint is %d; cnt: %d", pcntevt.timeStamp,pcntevt.unit, ToTalRotation);
-            // firstTime=pcntevt.unit
-            lastTime=pcntevt.timeStamp;
+            firstTime=lastTime; // 上一次上升沿的时间保存到第一次
+            lastTime=pcntevt.timeStamp; // 当前的保存到这一次，两个差值就是中间的时间
         }
-         else {
+        else {
             pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
             ESP_LOGI(TAG, "Current counter value :%d", ToTalRotation);
-            firstTime=pcntevt.timeStamp;
-         }
-        getPulseinterval(firstTime,lastTime);
-        getMachineState();
-        getRPM();
+            // firstTime=pcntevt.timeStamp;
+            Pulseinterval += 100;
+        }
+        if (lastTime != firstTime):
+            Pulseinterval = lastTime - firstTime;
+        RPM=round(60/(Pulseinterval/100));//转速取整
+        // 旋转时刻 MACHINESTATE==0  RPM > 5
+        // 停转时刻 MACHINESTATE==1  RPM < 5
+        if (Pulseinterval < 900) //600为6秒
+            MACHINESTATE=1; // 开启
+        else
+            MACHINESTATE=0; // 停机
         // printf("getPulseinterval is %ld;stateflag is %d;runtime is %d;\n",Pulseinterval,PulseWT,runtime);
         // printf("MACHINESTATE is %d \n",MACHINESTATE);
         // printf("RPM is %d \n",RPM);
