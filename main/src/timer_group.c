@@ -76,7 +76,7 @@ static xQueueHandle pcnt_evt_queue;   // A queue to handle pulse counter events
 
 /**
  * @brief 定时器中断回调函数
- *  
+ *
  *
  */
 static bool IRAM_ATTR timer_group_isr_callback(void *args)
@@ -124,7 +124,7 @@ static void IRAM_ATTR pcnt_example_intr_handler(void *arg)
     pcntevt.unit = pcnt_unit;
     unsigned long currentMillis = xTaskGetTickCountFromISR();
     portBASE_TYPE HPTaskAwoken = pdFALSE;
-    pcntevt.timeStamp = currentMillis; 
+    pcntevt.timeStamp = currentMillis;
     PulseWT=0;
     xQueueSendFromISR(pcnt_evt_queue, &pcntevt, &HPTaskAwoken);     // 队列发送
 }
@@ -138,7 +138,7 @@ static void pcnt_init(int unit)
         // Set PCNT input signal and control GPIOs
         .pulse_gpio_num = PCNT_INPUT_SIG_IO,
         .channel = PCNT_CHANNEL_0,
-        .unit = unit,  
+        .unit = unit,
         // What to do on the positive / negative edge of pulse input?
         .pos_mode = PCNT_COUNT_INC,   // Count up on the positive edge
         .neg_mode = PCNT_COUNT_DIS,   // Keep the counter value on the negative edge
@@ -209,41 +209,6 @@ static void tg_timer_init(int group, int timer, bool auto_reload, int timer_inte
     timer_start(group, timer);
 }
 
-// int getRPM()
-// {
-//     if(Pulseinterval>100)//去除低于1秒的脉冲间隔
-//     {
-//     RPM=round(60/(Pulseinterval/100));//转速取整
-//     }
-//     return RPM;
-// }
-
-
-// int getPulseinterval(unsigned long firstTime,unsigned long lastTime)
-// {
-//     if(firstTime!=lastTime)
-//     {
-//         Pulseinterval=lastTime-firstTime;
-//     }
-//     else
-//     {
-//         PulseWT++;
-//     }
-//     return Pulseinterval;
-// }
-
-// int getMachineState()
-// {
-//     if(0<Pulseinterval&&Pulseinterval<900) //600为6秒
-//     {
-//         MACHINESTATE=1;
-//     }
-//     else
-//     {
-//         MACHINESTATE=0;
-//     }
-//     return MACHINESTATE;
-// }
 
 void timer_main(void)
 {
@@ -265,39 +230,27 @@ void timer_main(void)
             // firstTime=pcntevt.unit
             lastTime=pcntevt.timeStamp;
         }
-         else {
+        else {
             pcnt_get_counter_value(pcnt_unit, &ToTalRotation);
             ESP_LOGI(TAG, "Current counter value :%d", ToTalRotation);
             // firstTime=pcntevt.timeStamp;
             firstTime=lastTime; // 上一次上升沿的时间保存到第一次
             lastTime=pcntevt.timeStamp; // 当前的保存到这一次，两个差值就是中间的时间
-         }
+        }
         if (lastTime != firstTime)
-            {
-                Pulseinterval = lastTime - firstTime;
-            }
+            Pulseinterval = lastTime - firstTime;
         else
-            {
-                PulseWT++;
-            }
-            
+            PulseWT++;
         RPM=round(60/(Pulseinterval/100));//转速取整
         // 旋转时刻 MACHINESTATE==0  RPM > 5
         // 停转时刻 MACHINESTATE==1  RPM < 5
-        
         if (Pulseinterval < 900) //600为6秒
-            {
-                MACHINESTATE=1; // 开启
-            }
+            MACHINESTATE=1; // 开启
         else
-            {
-            MACHINESTATE=0; // 停机 
-            }
-        // getPulseinterval(firstTime,lastTime);
-        // getMachineState();
-        // getRPM();
-        // printf("getPulseinterval is %ld;stateflag is %d;runtime is %d;\n",Pulseinterval,PulseWT,runtime);
-        // printf("MACHINESTATE is %d \n",MACHINESTATE);
-        // printf("RPM is %d \n",RPM);
+            MACHINESTATE=0; // 停机
+
+        printf("getPulseinterval is %ld;stateflag is %d;runtime is %d;\n",Pulseinterval,PulseWT,runtime);
+        printf("MACHINESTATE is %d \n",MACHINESTATE);
+        printf("RPM is %d \n",RPM);
     }
 }
